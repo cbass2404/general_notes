@@ -112,6 +112,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+/server/config/dev.js
 # Spyder project settings
 .spyderproject
 .spyproject
