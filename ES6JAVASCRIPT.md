@@ -4,7 +4,7 @@
 
 ## Table of Contents:
 
--   [ForEach](##forEach)
+-   [ForEach](#foreach)
 
 -   [Map](##map)
 
@@ -12,7 +12,7 @@
 
 -   [Find](##find)
 
--   ['Ever' and 'Some'](##'every'-and-'some')
+-   ['Ever' and 'Some'](##-'ever'-and-'some')
 
 -   [Reduce](##reduce)
 
@@ -31,6 +31,8 @@
 -   [Destructuring](##destructuring)
 
 -   [Classes](##classes)
+
+-   [For of Loops](##forOfLoop)
 
 -   [Generators](##generators)
 
@@ -700,22 +702,382 @@ points.map(([x, y]) => {
 
 ---
 
+-   Javascript classes use protypal inheritance
+
 ```javascript
-// notes and code
+// ES5
+function Car(options) {
+    this.title = options.title;
+}
+
+Car.prototype.drive = function () {
+    return 'vroom';
+};
+
+function Toyota(options) {
+    Car.call(this, options);
+    this.color = options.color;
+}
+
+Toyota.prototype = Object.create(Car.prototype);
+Toyota.prototype.constructor = Toyota;
+
+Toyota.prototype.honk = function () {
+    return 'beep';
+};
+
+const toyota = new Toyota({ color: 'red', title: 'DailyDriver' });
+
+// ES6
+class Car {
+    constructor({ title }) {
+        this.title = title;
+    }
+
+    drive() {
+        return 'vroom';
+    }
+}
+
+class Toyota extends Car {
+    constructor(options) {
+        super(options); // Car.constructor()
+
+        this.color = options.color;
+    }
+
+    honk() {
+        return 'beep';
+    }
+}
+
+const toyota = new Toyota({ color: 'red', title: 'Daily Driver' });
+```
+
+When to use classes:
+
+```javascript
+// ES5
+React.createClass({
+    doSomething() {
+        // stuff
+    },
+
+    doSomethingElse() {
+        // do other stuff
+    },
+});
+
+// ES6
+class MyComponent extends Component {
+    doSomething() {
+        // stuff
+    }
+
+    doSomethingElse() {
+        // do other stuff
+    }
+}
+```
+
+## forOfLoop
+
+---
+
+```javascript
+const colors = ['red', 'green', 'blue'];
+
+for (let color of colors) {
+    console.log(color);
+}
+
+const numbers = [1, 2, 3, 4];
+let total = 0;
+
+for (let number of numbers) {
+    total += number;
+}
 ```
 
 ## generators
 
 ---
 
+What is a generator?
+
 ```javascript
-// notes and code
+function* numbers() {
+    // the star turns the function into a generator
+    yield; // tells the generator changes done to true
+}
+
+const gen = numbers();
+
+gen.next(); // done: false
+
+gen.next(); // done: true
+```
+
+-   generators can be entered and ran multiple times
+
+-   when you re-enter a generator it picks up where you left off
+
+what does a generator do?
+
+-   Story for the generator to do
+    -   start walking to store
+    -   still walking...
+    -   at the store! going in with money
+    -   transition to money
+        -   in the store... see you soon...
+        -   transition to groceries
+    -   i'm back with groceries!
+    -   headed back home
+
+```javascript
+function* shopping() {
+    // stuff on the sidewalk
+
+    // walking down the sidewalk
+
+    // go into the store with cash
+    const stuffFromStore = yield 'cash'; // value: cash, done: false
+
+    const cleanClothes = yield 'clean clothes'; // value: laundry, done: false
+
+    // walking back home
+
+    return [stuffFromStore, cleanClothes]; // value: [groceries, clean clothes], done: true
+}
+
+// stuff in the store
+const gen = shopping();
+gen.next(); // leaving our house
+// walked into the store
+// walking up and down the aisles...
+// purchase our stuff
+gen.next('groceries'); // leaving the store with groceries
+gen.next('clean clothes'); // get laundry and go home, done
+```
+
+Iteration with generators:
+
+```javascript
+function* colors() {
+    yield 'red';
+    yield 'blue';
+    yield 'green';
+}
+
+const gen = colors();
+gen.next(); // value: red , done: false
+gen.next(); // value: blue , done: false
+gen.next(); // value: green , done: false
+gen.next(); // done: true
+
+// alternatively you can use a for of loop
+const myColors = [];
+for (let color of colors()) {
+    myColors.push(color);
+}
+myColors; // ['red', 'blue', 'green']
+
+// a practical use of generators
+const engineeringTeam = {
+    size: 3,
+    department: 'Engineering',
+    lead: 'Jill',
+    manager: 'Alex',
+    engineering: 'Dave',
+};
+
+function* TeamIterartor(team) {
+    yield team.lead;
+    yield team.manager;
+    yield team.engineer;
+}
+
+const names = [];
+for (let name of TeamIterator(engineeringTeam)) {
+    names.push(name);
+}
+names; // ['Jill', 'Alex', 'Dave'];
+```
+
+Generator delegation:
+
+```javascript
+const testingTeam = {
+    lead: 'Amanda',
+    tester: 'Bill',
+};
+
+const engineeringTeam = {
+    testingTeam,
+    size: 3,
+    department: 'Engineering',
+    lead: 'Jill',
+    manager: 'Alex',
+    engineering: 'Dave',
+};
+
+function* TeamIterartor(team) {
+    yield team.lead;
+    yield team.manager;
+    yield team.engineer;
+    const testingTeamGenerator = TestingTeamIterator(team.testingTeam);
+    yield* testingTeamGenerator; // tells the generator 'here is another generator to yield from
+}
+
+function* TestingTeamIterator(team) {
+    yield team.lead;
+    yield team.tester;
+}
+
+const names = [];
+for (let name of TeamIterator(engineeringTeam)) {
+    names.push(name);
+}
+names; // ['Jill', 'Alex', 'Dave', 'Amanda', 'Bill'];
+```
+
+Generators with Symbol.iterator:
+
+```javascript
+const testingTeam = {
+    lead: 'Amanda',
+    tester: 'Bill',
+    [Symbol.iterator]: function* () {
+        yield this.lead;
+        yield this.tester;
+    },
+};
+
+const engineeringTeam = {
+    testingTeam,
+    size: 3,
+    department: 'Engineering',
+    lead: 'Jill',
+    manager: 'Alex',
+    engineer: 'Dave',
+    [Symbol.iterator]: function* (){ // tells for of loop how to iterate
+        yield this.lead;
+        yield this.manager;
+        yield this.engineer
+        yield* this.testingTeam // tells the generator 'here is another generator to yield from just like the other syntax, but cleaner and more compact, tells the generator to look at the new list and look for the [Symbol.iterator] key and run the generator inside it
+    }
+};
+
+const names = [];
+for (let name of engineeringTeam {
+    names.push(name);
+}
+names; // ['Jill', 'Alex', 'Dave', 'Amanda', 'Bill'];
+
+// Practical example of when to use
+
+class Comment{
+    constructor(content, children){
+        this.content = content;
+        this.children = children;
+    }
+
+    *[Symbol.iterator]() {
+        yield this.content;
+        for(let child of this.children){
+            yield* child;
+        }
+    }
+}
+
+const children = [
+    new Comment('good comment', []),
+    new Comment('bad comment', []),
+    new Comment('meh', [])
+]
+
+const tree = new Comment('Great post!', children)
+
+const values = [];
+for(let value of tree){
+    values.push(value)
+}
+
+console.log(values)
 ```
 
 ## promises and fetch
 
 ---
 
+Promise states:
+
+-   'unresolved' waiting for something to finish
+-   'resolved' something finished and it all went ok
+    -   passes to .then block to run asynchronous
+-   'rejected' something finished and something went bad
+    -   passes to .catch block to resolve the error message
+
 ```javascript
-// notes and code
+// ES6
+let promise = new Promise((resolve, reject) => {
+    resolve();
+    // reject();
+})
+    .then(() => {
+        console.log('finally finished');
+    })
+    .then(() => {
+        console.log('I was also ran');
+    })
+    .catch((err) => {
+        console.error('uh oh!!');
+    });
+
+// Practical use
+promise = new Promise((resolve, reject) => {
+    // setTimeout(() => {
+    //     resolve();
+    //     // reject();
+    // }, 3000);
+    var request = new XHTMLRequest();
+    // make request
+    request.onload = () => {
+        resolve();
+    };
+})
+    .then(() => {
+        console.log('finally finished');
+    })
+    .then(() => {
+        console.log('I was also ran');
+    })
+    .catch((err) => {
+        console.error('uh oh!!');
+    });
 ```
+
+-   Ajax requests with Fetch
+
+```javascript
+let url = 'https://jsonplaceholder.typicode.com/posts/';
+
+fetch(url)
+    .then((res) => res.json()) // does not automatically give data in json so you have to parse it
+    .then((data) => console.log(data))
+    .catch((err) => console.error(err));
+```
+
+Shortcoming of Fetch:
+
+-   first
+
+```javascript
+let url = 'https://jsonplaceholder.typicode.com/posts/';
+
+fetch(url)
+    .then((res) => console.log(res))
+    .catch((err) => console.error('BAD', err));
+```
+
+_if request fails with fetch but went through to an endpoint it will not enter catch block. it only handles catch if the request flat out fails to establish a connect_
