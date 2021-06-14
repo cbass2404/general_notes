@@ -60,4 +60,4 @@ You should be able to then click the "Test Your Integration" button. If it's wor
 
 This is fine, as it does prove the integration is working and is sending data through ngrok to your application.
 
-A quick note about production, since this has been a major topic of confusion. The Ngrok session (and the LocalTunnel usage from the videos) are development only. These tools only serve to allow Sendgrid to post back to your application running on localhost. If you were to deploy your finished application to Heroku and users filled out a survey, the Sendgrid integration for click tracking would post directly to your Heroku application at https://your*heroku_url/api/surveys/webhooks*\_
+A quick note about production, since this has been a major topic of confusion. The Ngrok session (and the LocalTunnel usage from the videos) are development only. These tools only serve to allow Sendgrid to post back to your application running on localhost. If you were to deploy your finished application to Heroku and users filled out a survey, the Sendgrid integration for click tracking would post directly to your Heroku application at `https://your*heroku_url/api/surveys/webhooks*`

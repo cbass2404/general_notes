@@ -126,7 +126,7 @@ array.filter(function(currentValue, index, arr), thisValue)
 
 ```javascript
 users.find((user) => {
-    return user.name === "Alex";
+    return user.name === 'Alex';
 });
 ```
 
@@ -163,9 +163,161 @@ array.find(function(currentValue, index, arr),thisValue)
 
 ---
 
+```javascript
+var computers = [
+    { name: 'Apple', ram: 24 },
+    { name: 'Compaq', ram: 4 },
+    { name: 'Acer', ram: 32 },
+];
+
+var allComputersCanRunProgram = true;
+var onlySomeComputersCanRunProgram = false;
+
+for (var i = 0; i < computers.length; i++) {
+    var computer = computers[i];
+
+    if (computer.ram < 16) {
+        allComputersCanRunProgram = false;
+    } else {
+        onlySomeComputersCanRunProgram = true;
+    }
+}
+
+// with every
+// returns false because one of them is not greater than 16
+computers.every(function (computer) {
+    return computer.ram > 16;
+});
+
+// with some
+// returns true because at least one of the computers is greater than 16
+computers.some(function (computer) {
+    return computer.ram > 16;
+});
+```
+
+### Every
+
+-   The every() method checks if all elements in an array pass a test (provided as a function).
+
+-   The every() method executes the function once for each element present in the array:
+
+    -   If it finds an array element where the function returns a false value, every() returns false (and does not check the remaining values)
+    -   If no false occur, every() returns true
+
+-   every() does not execute the function for array elements without values.
+
+-   every() does not change the original array
+
+```javascript
+array.every(function(currentValue, index, arr), thisValue)
+```
+
+-   Required. A function to be run for each element in the array.
+    -   Function arguments:
+        -   currentValue
+            -   Required. The value of the current element
+        -   index
+            -   Optional. The array index of the current element
+        -   arr
+            -   Optional. The array object the current element belongs to
+        -   thisValue
+            -   Optional. A value to be passed to the function to be used as its "this" value.
+            -   If this parameter is empty, the value "undefined" will be passed as its "this" value
+
+### Some
+
+-   The some() method checks if any of the elements in an array pass a test (provided as a function).
+
+-   The some() method executes the function once for each element present in the array:
+
+    -   If it finds an array element where the function returns a true value, some() returns true (and does not check the remaining values)
+    -   Otherwise it returns false
+
+-   some() does not execute the function for array elements without values.
+
+-   some() does not change the original array
+
+```javascript
+array.some(function(currentValue, index, arr), thisValue)
+```
+
+-   Required. A function to be run for each element in the array.
+    -   Function arguments:
+        -   currentValue
+            -   Required. The value of the current element
+        -   index
+            -   Optional. The array index of the current element
+        -   arr
+            -   Optional. The array object the current element belongs to
+
 ## reduce
 
 ---
+
+```javascript
+var numbers = [10, 20, 30];
+var sum = 0;
+
+// for loop version
+for (let i = 0; i < numbers.length; i++) {
+    sum += numbers[i];
+}
+
+// reduce function version
+numbers.reduce(function (sum, number) {
+    return sum + number;
+}, 0);
+
+var primaryColors = [
+    {color: 'red'},
+    {color: 'yellow},
+    {color: 'blue'}
+]
+
+primaryColors.reduce(function(prev, primaryColor){
+    prev.push(primaryColor.color);
+
+    return prev
+}, [])
+
+// great practical way to use reduce to check for opening closing balance
+function balancedParens(string){
+    return !string.split('').reduce(function(prev, char){
+        if(prev < 0){return prev}
+        if(char === "("){return ++prev}
+        if(char === ")"){return --prev}
+        return prev
+    }, 0)
+}
+
+balancedParens("((()))")
+```
+
+-   The reduce() method reduces the array to a single value.
+
+-   The reduce() method executes a provided function for each value of the array (from left-to-right).
+
+-   The return value of the function is stored in an accumulator (result/total).
+
+-   reduce() does not execute the function for array elements without values.
+
+-   This method does not change the original array.
+
+```javascript
+array.reduce(function(total, currentValue, currentIndex, arr), initialValue)
+```
+
+-   Required. A function to be run for each element in the array.
+    -   Function arguments:
+        -   total
+            -   Required. The initialValue, or the previously returned value of the function
+        -   currentValue
+            -   Required. The value of the current element
+        -   currentIndex
+            -   Optional. The array index of the current element
+        -   arr
+            -   Optional. The array object the current element belongs to
 
 ## const/let
 
