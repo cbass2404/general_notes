@@ -224,6 +224,10 @@ array.every(function(currentValue, index, arr), thisValue)
         -   thisValue
             -   Optional. A value to be passed to the function to be used as its "this" value.
             -   If this parameter is empty, the value "undefined" will be passed as its "this" value
+    -   thisValue
+        -   Optional. A value to be passed to the function to be used as its "this" value.
+
+_If this parameter is empty, the value "undefined" will be passed as its "this" value_
 
 ### Some
 
@@ -250,6 +254,10 @@ array.some(function(currentValue, index, arr), thisValue)
             -   Optional. The array index of the current element
         -   arr
             -   Optional. The array object the current element belongs to
+    -   thisValue
+        -   Optional. A value to be passed to the function to be used as its "this" value.
+
+_If this parameter is empty, the value "undefined" will be passed as its "this" value_
 
 ## reduce
 
@@ -320,6 +328,8 @@ array.reduce(function(total, currentValue, currentIndex, arr), initialValue)
             -   Optional. The array index of the current element
         -   arr
             -   Optional. The array object the current element belongs to
+    -   initialValue
+        -   Optional. A value to be passed to the function as the initial value
 
 ## const/let
 
