@@ -269,29 +269,31 @@ numbers.reduce(function (sum, number) {
     return sum + number;
 }, 0);
 
-var primaryColors = [
-    {color: 'red'},
-    {color: 'yellow},
-    {color: 'blue'}
-]
+var primaryColors = [{ color: 'red' }, { color: 'yellow' }, { color: 'blue' }];
 
-primaryColors.reduce(function(prev, primaryColor){
+primaryColors.reduce(function (prev, primaryColor) {
     prev.push(primaryColor.color);
 
-    return prev
-}, [])
+    return prev;
+}, []);
 
 // great practical way to use reduce to check for opening closing balance
-function balancedParens(string){
-    return !string.split('').reduce(function(prev, char){
-        if(prev < 0){return prev}
-        if(char === "("){return ++prev}
-        if(char === ")"){return --prev}
-        return prev
-    }, 0)
+function balancedParens(string) {
+    return !string.split('').reduce(function (prev, char) {
+        if (prev < 0) {
+            return prev;
+        }
+        if (char === '(') {
+            return ++prev;
+        }
+        if (char === ')') {
+            return --prev;
+        }
+        return prev;
+    }, 0);
 }
 
-balancedParens("((()))")
+balancedParens('((()))');
 ```
 
 -   The reduce() method reduces the array to a single value.
@@ -323,38 +325,387 @@ array.reduce(function(total, currentValue, currentIndex, arr), initialValue)
 
 ---
 
+```javascript
+// antiquated and un-needed
+var color = red;
+
+// used when you expect the value to change over time
+let color = red;
+
+// used when you expect the value to never change
+const color = red;
+
+// ES5
+var name = 'Jane';
+var title = 'Software Engineer';
+var hourlyWage = 40;
+
+// ES6
+const name = 'Jane';
+let title = 'Software Engineer';
+let hourly = 40;
+
+// some time later
+title = 'Sr Software Engineer';
+hourly = 45;
+```
+
 ## template strings
 
 ---
+
+```javascript
+// es5
+function getMessage() {
+    const year = new Date().getFullYear();
+
+    return 'the year is ' + year;
+}
+
+// es6
+function getMesage() {
+    const year = new Date().getFullYear();
+
+    return `the year is ${year}`;
+}
+```
 
 ## arrow functions
 
 ---
 
+```javascript
+// standard
+const add = function (a, b) {
+    return a + b;
+};
+
+// ES6 fat arrow function
+const add = (a, b) => {
+    return a + b;
+};
+
+// ES6 fat arrow implicit return
+const add = (a, b) => a + b;
+
+// ES6 fat arrow with single argument
+// With a single argument you don't need parenthesis on the argument
+// However prettier doesn't care and adds it anyways
+const doublt = (number) => number * 2;
+
+// Example with helper function
+const numbers = [1, 2, 3];
+
+numbers.map((number) => 2 * number);
+```
+
+When to use fat arrow functions:
+
+```javascript
+const team = {
+    members: ['Jane', 'Bill'],
+    teamName: 'Super Squad',
+    teamSummary: function () {
+        return this.members.map((member) => {
+            return `${member} is on team ${this.teamName}`;
+        });
+    },
+};
+```
+
+-   Fat arrow functions make use of lexical this
+    -   Lexical means the placement of 'this' determines how it is interpreted or evaluated
+-   Fat arrow functions make 'this' work the way we always expected it to
+
 ## enhanced object literals
 
 ---
+
+```javascript
+// ES5
+function createBookShip(inventory) {
+    return {
+        inventory: inventory,
+        inventoryValue: function () {
+            return this.inventory.reduce(
+                (total, book) => total + book.price,
+                0
+            );
+        },
+        priceForTitle: function (title) {
+            return this.inventory.find((book) => book.title === title).price;
+        },
+    };
+}
+
+// ES6
+function createBookShip(inventory) {
+    return {
+        inventory,
+        inventoryValue() {
+            return this.inventory.reduce(
+                (total, book) => total + book.price,
+                0
+            );
+        },
+        priceForTitle(title) {
+            return this.inventory.find((book) => book.title === title).price;
+        },
+    };
+}
+
+const inventory = [
+    { title: 'Harry Potter', price: 10 },
+    { title: 'Eloquent Javascript', price: 15 },
+];
+
+const bookShop = createBookShip(inventory);
+
+// Another Example
+
+// ES5
+function saveFile() {
+    $.ajax({ method: 'POST', url: url, data: data });
+}
+
+// ES6
+function saveFile() {
+    $.ajax({
+        url,
+        data,
+        method: 'POST',
+    });
+}
+
+const url = 'http://fileupload.com';
+const data = { color: 'red' };
+```
 
 ## default function arguments
 
 ---
 
+```javascript
+// ES5
+function makeAjaxRequest(url, method) {
+    if (!method) {
+        method = 'GET';
+    }
+
+    // logic to make the request
+}
+
+// ES6
+function makeAjaxRequest(url, method = 'GET') {
+    //logic to make the request
+}
+
+// If you want to force a default argument to be null do the following:
+makeAjaxRequest('lkasdjf.com', null);
+
+// User management
+function createAdminUser(user = new User(generateId())) {
+    user.admin = true;
+
+    return user;
+}
+```
+
+_null does not reassign the default argument, it nullifies its existance_
+
 ## rest and spread operator
 
 ---
+
+```javascript
+// ES5
+function addNumbers(numbers) {
+    return numbers.reduce((sum, number) => {
+        return sum + number;
+    }, 0);
+}
+
+addNumbers([1, 2, 3, 4, 5]);
+
+// Rest Operator is used to capture a list of an unknown amount of arguments
+// Spread Operator is used to spread the list into a usable spot
+// ES6
+function addNumbers(...numbers) {
+    const numArray = [...numbers];
+    return numbers.reduce((sum, number) => {
+        return sum + number;
+    }, 0);
+}
+
+addNumbers(1, 2, 3, 4, 5);
+
+// To spread into an array
+const defaultColors = ['red', 'green'];
+const userFavoriteColors = ['orange', 'yellow'];
+const fallColors = ['fire red', 'fall orange'];
+
+// ES5
+defaultColors.concat(userFavoriteColors);
+
+// ES6
+const concat = ['blue', ...fallColors, ...defaultColors, userFavoriteColors];
+
+function validateShoppingList() {
+    if (items.indexOf('milk') < 0) {
+        return ['milk', ...items];
+    }
+}
+
+validateShoppingList('oranges', 'bread', 'eggs');
+
+// A real use example to rename a function without breaking code
+const MathLibrary = {
+    calculateProduct(a, b) {
+        return a * b;
+    },
+    multiply(a, b) {
+        return a * b;
+    },
+};
+
+// with spread
+const MathLibrary = {
+    calculateProduct(...rest) {
+        console.log('Please use the multiply method instead');
+        return this.multiply(...rest);
+    },
+    multiply(a, b) {
+        return a * b;
+    },
+};
+```
 
 ## destructuring
 
 ---
 
+Destructuring Objects:
+
+```javascript
+// ES5
+var expense = {
+    type: 'Business',
+    amount: '$45 USD',
+};
+
+var type = expense.type;
+var amount = expense.amount;
+
+// ES6
+const { type, amount } = expense;
+```
+
+_if you destructure a key that doesn't exist it returns as undefined_
+
+Destructuring Argument Objects:
+
+```javascript
+var savedFile = {
+    extension: '.jpg',
+    name: 'repost',
+    size: 14040,
+};
+
+// ES5
+function fileSummary(file) {
+    return `The file ${file.name}.${file.extension} is of size ${file.size}`;
+}
+
+// ES6
+function fileSummary({ name, extension, size }) {
+    return `The file ${name}.${extension} is of size ${size}`;
+}
+```
+
+Destructuring Arrays
+
+```javascript
+const companies = ['Google', 'Facebook', 'Uber'];
+
+// ES5
+const firstCompany = companies[0];
+
+// ES6
+const [name1, name2, name3, name4, ...rest] = companies;
+
+// To destructure off properties of an array you use curly brackets
+const { length } = companies;
+```
+
+Destructuring Arrays and Objects _at the same time_
+
+```javascript
+const companies = [
+    {name: 'Google', location: 'Mountain View'},
+    {name: 'Facebook', location: 'Menlo Park'},
+    {name: 'Uber', location: 'San Francisco'},
+]
+
+const [{location}, ...rest]
+
+// Another example
+const Google = {
+    locations: ['Mountain View', 'New York', 'London']
+}
+
+const {locations: [location]} = Google;
+```
+
+When to Use
+
+```javascript
+// When you have a very long arg list for a function, especially when it is stored in a seperate file
+// Destructuring the arguments into and from objects removes the need to have them in a specific order when
+function signup({ username, password, email, dateOfBirth, city }) {
+    // create new user
+}
+const user = {
+    username: 'myname',
+    password: 'mypassword',
+    email: 'myemail@example.com',
+    dateOfBirth: '1/1/1990',
+    city: 'New York',
+};
+signup('myname', 'mypassword', 'myemail@example.com', '1/1/1990', 'New York');
+
+// Another example of when to use
+const points = [
+    [4, 5],
+    [10, 1],
+    [0, 40],
+];
+
+// the program may need another format
+points.map(([x, y]) => {
+    return { x, y };
+});
+```
+
 ## classes
 
 ---
+
+```javascript
+// notes and code
+```
 
 ## generators
 
 ---
 
+```javascript
+// notes and code
+```
+
 ## promises and fetch
 
 ---
+
+```javascript
+// notes and code
+```
