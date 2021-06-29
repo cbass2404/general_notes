@@ -169,6 +169,32 @@ _Note: the above example is the default if you target es6 for the compiler makin
 $ ts-node filename.ts
 ```
 
+Compiling with src and build directories
+
+-   In your terminal and main directory
+
+```
+tsc --init
+```
+
+_generates a tsconfig.json file_
+
+-   In the config file comment in "outDir" and "rootDir" then set up the paths
+
+-   This will set up using the command and compile it as directed
+
+```
+tsc
+```
+
+OR
+
+```
+tsc -w
+```
+
+_using -w makes it watch the files to compile on save_
+
 ## Notes
 
 ---
@@ -746,3 +772,130 @@ export class User implements Mappable {
 ```
 
 -   When creating custom interfaces export it and import it into the class that should implement it, this tells typescript that it should match whatever parameters are set and points you straight to the errors
+
+## Sorting algorithms with typescript
+
+-   use a type guard
+
+-   typescript understands that by reading the line of the type guard, you are about to use that type and restores access to the properties of that type
+
+```javascript
+// type syntax below only works to restore access to string number and boolean type
+if (typeof this.collection === 'string') {
+}
+// works on all other types of constructor functions
+if (this.collection instanceof Array) {
+}
+```
+
+-   usually better/ more effective to break out different types into it's own class and then sort that class instance
+
+## Fixing parent class type errors
+
+-   If you call items that will exist in the child class but not the parent class, it throws type errors because it thinks they don't exist
+
+-   To get around this you turn the class into an abstract class
+
+## Abstract Classes
+
+-   can not be used to create an object directly
+-   only used as a parent class
+-   can contain real implementation for some methods
+-   implemented methods can refer to other methods that don't actually exist yet (we still have to provide names and types for the un-impletemented methods)
+-   can make child classes promise to implement some other method
+
+```javascript
+export abstract class Sorter {
+    abstract compare(leftIndex: number, rightIndex: number): boolean;
+    abstract swap(leftIndex: number, rightIndex: number): void;
+    abstract length: number; // it is a getter function so treat as a value
+
+    sort(): void {
+        const { length } = this;
+        for (let i = 0; i < length; i++) {
+            for (let j = 0; j < length - i - 1; j++) {
+                if (this.compare(j, j + 1)) {
+                    this.swap(j, j + 1);
+                }
+            }
+        }
+    }
+}
+```
+
+## Interfaces vs Abstract classes
+
+-   Interface
+    -   sets up a contract between different classes
+    -   use when we have very different objects that we want to work together
+    -   promotes loose coupling
+-   Inheritance/Abstract classes
+    -   sets up a contract between different classes
+    -   use when we are trying to build up a definition of an object
+    -   strongly couples classes together
+
+## Enumeration
+
+-   Follow near identical syntax rules as normal objects
+-   Creates an object with the same keys and values when converted from TS to JS
+-   Primary goal is to signal to other engineers that these are all closely related values
+-   Use whenever we have a small fixed set of values that are all closely related and known at compile time
+-   Used mainly when you have a small set of values
+
+```javascript
+enum MatchResult {
+    HomeWin = 'H',
+    AwayWin = 'A',
+    Draw = 'D',
+}
+MatchResult.HomeWin
+```
+
+## Type Assertion
+
+-   You as the developer are trying to over ride the typescript
+
+```javascript
+.map((row: string[]): MatchData => {
+                return [
+                    dateStringToDate(row[0]),
+                    row[1],
+                    row[2],
+                    parseInt(row[3]),
+                    parseInt(row[4]),
+                    row[5] as MatchResult,
+                    row[6],
+                ];
+            });
+```
+
+## Generics
+
+-   like function arguments but for types in class/function definitions
+-   allows us to define the type of a property/argument/return value at a future point
+-   used heavily when writing reusable code
+
+```javascript
+class HoldAnything<TypeOfData>{
+    data: TypeOfData;
+}
+
+const holdNumber = new HoldAnything<number>();
+
+// subclass
+type MatchData = [Date, string, string, number, number, MatchResult, string];
+
+export class MatchReader extends CsvFileReader<MatchData> {
+```
+
+## Inheritance vs Composition
+
+-   Inheritance:
+
+    -   parent class has core functions inherited by subclass
+    -   characterized by an 'is a' relationship between two classes
+
+-   Composition:
+
+    -   no class is relying on the other permanently, completely swappable
+    -   characterized by a 'has a' relationship between two classes
