@@ -1769,3 +1769,583 @@ module.exports = () => {
 or use .env.local for local environment variables
 
 -   next run npm build and check that none of the file sizes are marked in red, if so try to optimize that file
+
+-   if everything looks good, deploy
+
+## Authentication in NextJS
+
+[NextAuth Documentation](https://next-auth.js.org/)
+_It lists providers for oauth style logic_
+
+There are two main types of authentication used:
+
+1. Server-side Sessions
+    - stores unique indentifier on server, send same indentifier to client
+    - client sends indentifier along with requests to protected resources
+2. Authentication Tokens
+    - create (but not store) 'permission' token on server, sends same to client
+    - client sends token along with requests to protected resources
+
+-   Single page applications work with tokens instead of sessions.
+-   Pages are served directly and populated with logic without hitting the server.
+-   Backend APIs work in a 'stateless' way (they don't care about connected clients)
+-   This makes them 'detached'
+
+    -   servers don't save information about authenticated clients
+    -   instead clients should get information that allows them to prove their authentication
+    -   connected by json web tokens built by three main building blocks
+
+        1. Issuer Data
+        2. Custom Data (e.g. user data)
+        3. Secret Signing Key
+
+    _tokens can still be unpacked and read, the key does not encrypt the token. it just signs the token to say that a specific server did create it_
+
+    _only the signing server is able to verify an incoming token_
+
+### Setup
+
+```
+$ npm install next-auth bcryptjs
+```
+
+-   Next-Auth supports both client and server side validation
+-   Helps generate json web tokens
+-   Will not handle user creation
+-   Supports many databases
+
+```js
+import { hash } from 'brcyptjs';
+
+export const hashPassword = async (password) => {
+    // hash takes two arguments, the password and how many times to hash it
+    const hashedPassword = await hash(password, 12);
+    return hashedPassword;
+};
+```
+
+_ALWAYS hash passwords before storing passwords_
+
+```js
+// signup route
+import { connectToDatabase } from '../../../helpers/db';
+import {
+    isValidEmail,
+    isValidPassword,
+    isValidInput,
+} from '../../../helpers/validateInput';
+import { hashPassword } from '../../../helpers/auth';
+
+const handler = async (req, res) => {
+    if (req.method === 'POST') {
+        const data = req.body;
+
+        const { email, password } = data;
+
+        const validatedEmail =
+            isValidInput(email) && isValidEmail(email) ? true : false;
+
+        console.log(validatedEmail);
+
+        const validatedPassword =
+            isValidInput(password) && isValidPassword(password) ? true : false;
+
+        console.log(validatedPassword);
+
+        if (!validatedEmail || !validatedPassword) {
+            if (!validatedEmail && !validatedPassword) {
+                res.status(422).json({
+                    message: 'Must enter valid email and password',
+                });
+            } else if (!validatedEmail) {
+                res.status(422).json({ message: 'Must enter valid email' });
+            } else {
+                res.status(422).json({ message: 'Must enter valid password' });
+            }
+            return;
+        }
+
+        let client;
+        try {
+            client = await connectToDatabase();
+        } catch (error) {
+            res.status(500).json({
+                message: 'Failed to connect to database...',
+            });
+            return;
+        }
+
+        const db = client.db();
+
+        let existingUser;
+
+        try {
+            existingUser = await db.collection('users').findOne({ email });
+        } catch (error) {
+            res.status(500).json({
+                message: 'Could not check database for email',
+            });
+            client.close();
+            return;
+        }
+
+        if (existingUser) {
+            res.status(422).json({ message: 'Email already in use' });
+            return;
+        }
+
+        const hashedPassword = await hashPassword(password);
+
+        const newUser = {
+            email,
+            password: hashedPassword,
+        };
+
+        let result;
+
+        try {
+            result = await db.collection('users').insertOne(newUser);
+
+            newUser._id = result.insertedId;
+
+            res.status(201).json({ message: 'Created user!', data: newUser });
+        } catch (error) {
+            res.status(500).json({ message: 'Failed to make user account...' });
+        }
+
+        client.close();
+        return;
+    }
+};
+
+export default handler;
+```
+
+### NextAuth
+
+1.  create a dynamic api route [...nextauth].js
+
+    -   this is done because it needs to be a catch all route
+    -   next auth exposes many routes and handles them
+    -   you can still make your own routes in auth, however you can not reuse a name that nextauth uses
+    -   check nextauth documentation > getting started > rest api to see taken routes
+
+2.  in your [...nextauth] file, import NextAuth and export default it while calling it
+    -   the nextauth function automatically generates the typical handler function
+    -   pass a configuration object to it to set it up (check documentation to see all configurations available)
+
+```js
+import NextAuth from 'next-auth';
+import Providers from 'next-auth/providers';
+
+import { connectToDatabase } from '../../../helpers/db';
+import { verifyPassword } from '../../../helpers/auth';
+
+export default NextAuth({
+    // configuration object props to manage authentication
+    session: {
+        // maxAge prop default length is 30 days
+        // only necessary to set if you want longer or shorter
+        jwt: true,
+    },
+    // configure one or more providers
+    providers: [
+        Providers.Credentials({
+            async authorize(credentials) {
+                let client;
+                try {
+                    client = await connectToDatabase();
+                } catch (error) {
+                    client.close();
+                    throw new Error('Could not connect to database...');
+                }
+
+                const usersCollection = client.db().collections('users');
+
+                // check if a user exists
+                let user;
+                try {
+                    user = await usersCollection.findOne({
+                        email: credentials.email,
+                    });
+                } catch (error) {
+                    client.close();
+                    throw new Error('Unable to query database...');
+                }
+
+                if (!user) {
+                    client.close();
+                    throw new Error('No user found!');
+                }
+
+                // check if passwords match
+                let isValid;
+                try {
+                    isValid = await verifyPassword(
+                        credentials.password,
+                        user.password
+                    );
+                } catch (error) {
+                    client.close();
+                    throw new Error('Could not verify password...');
+                }
+
+                if (!isValid) {
+                    client.close();
+                    throw new Error('Could not log in...');
+                }
+
+                client.close();
+
+                // values here will be added to jwt token
+                return { email: user.email };
+            },
+        }),
+        // add more providers here
+    ],
+});
+```
+
+### NextAuth client side signin
+
+-   you do not need to configure login yourself
+-   the signin function is a function you can call to sign in
+-   request is sent automatically
+
+```js
+import { signIn } from 'next-auth/client';
+import { useRouter } from 'next/router';
+
+const router = useRouter();
+
+async function submitHandler(event) {
+    event.preventDefault();
+
+    const enteredEmail = emailInputRef.current.value;
+    const enteredPassword = passwordInputRef.current.value;
+
+    if (isLogin) {
+        const result = await signIn('credentials', {
+            // first arg of signIn is the authorization type you are using
+            // second arg is a configuration object to set up how it should work
+            // if you throw an error in login it redirects to somewhere else automatically unless you configure it to false
+            // if redirect is set to false it will return a promise which yields a resolve
+            // part of the configuration is to send the data you need to log in
+            // in this case, email and password
+            redirect: false,
+            email: enteredEmail,
+            password: enteredPassword,
+        });
+
+        if (!result.error) {
+            // replaces the current url and navigates to the route
+            // does not reload app
+            router.replace('/profile');
+        }
+    } else {
+        try {
+            const result = await createUser(enteredEmail, enteredPassword);
+
+            console.log(result);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+}
+```
+
+### NextAuth clien side logout
+
+```js
+import { signOut } from 'next-auth/client';
+
+const handleLogout = () => {
+    // returns a promise, only readable if you don't navigate away
+    signOut();
+};
+```
+
+### managing authentication sessions
+
+-   use the useSession from next-auth/client to check if authentication is valid
+
+```js
+import Link from 'next/link';
+import { useSession } from 'next-auth/client';
+
+import classes from './main-navigation.module.css';
+
+function MainNavigation() {
+    // returns an array of two objects
+    // session - whether a token exists and if it is valid
+    // loading - whether next-auth is determining IF a token exists and if it is valid
+    const [session, loading] = useSession();
+
+    return (
+        <header className={classes.header}>
+            <Link href="/">
+                <a>
+                    <div className={classes.logo}>Next Auth</div>
+                </a>
+            </Link>
+            <nav>
+                <ul>
+                    {!session && !loading && (
+                        <li>
+                            <Link href="/auth">Login</Link>
+                        </li>
+                    )}
+                    {session && (
+                        <li>
+                            <Link href="/profile">Profile</Link>
+                        </li>
+                    )}
+                    {session && (
+                        <li>
+                            <button>Logout</button>
+                        </li>
+                    )}
+                </ul>
+            </nav>
+        </header>
+    );
+}
+
+export default MainNavigation;
+```
+
+### NextAuth page guards
+
+-   getSession from 'next-auth/client' is used to get the active session
+-   returns null if there is no session
+-   can be used to trigger navigation if there is no session
+-   there are two types of page guards
+    1. Client Side
+    2. Server Side
+
+```js
+// client side page guard
+import { useEffect, useState } from 'react';
+import { getSession } from 'next-auth/client';
+
+import ProfileForm from './profile-form';
+import classes from './user-profile.module.css';
+
+function UserProfile() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadedSession, setLoadedSession] = useState();
+
+    useEffect(() => {
+        // returns a promise with the session as a response if it exists
+        getSession().then((session) => {
+            if (!session) {
+                // uses the url bar and changes the input to navigate away
+                window.location.href = '/auth';
+            } else {
+                setIsLoading(false);
+            }
+        });
+    }, []);
+
+    if (isLoading) {
+        return <p className={classes.profile}>Loading...</p>;
+    }
+
+    return (
+        <section className={classes.profile}>
+            <h1>Your User Profile</h1>
+            <ProfileForm />
+        </section>
+    );
+}
+
+export default UserProfile;
+```
+
+```js
+// server side page guards
+import { getSession } from 'next-auth/client';
+
+import UserProfile from '../components/profile/user-profile';
+
+function ProfilePage() {
+    return <UserProfile />;
+}
+
+export const getServerSideProps = async (context) => {
+    // getSession returns the session if it exists
+    // can pass in an object to set a request key
+    // can pass in context.req to key to get the session token cookie
+    // checks to see if it exists and acts accordingly
+    const session = await getSession({ req: context.req });
+
+    if (!session) {
+        return {
+            redirect: {
+                // where to redirect to
+                destination: '/auth',
+                // permanent true will ALWAYS redirect
+                // do not set if you want the page accessible
+                permanent: false,
+            },
+        };
+    }
+    return {
+        props: { session },
+    };
+};
+
+export default ProfilePage;
+```
+
+### Use NextAuth Session Provider Component
+
+-   NextAuth has a Provider wrapper from 'next-auth/client'
+-   used to prevent the need to repeatedly call the server to check authenticity of credentials
+
+```js
+import { Provider } from 'next-auth/client';
+
+import Layout from '../components/layout/layout';
+import '../styles/globals.css';
+
+function MyApp({ Component, pageProps }) {
+    return (
+        // checks if there was a serverSideProp call that returns a session
+        // if the page component made that call, it will not call useSession redundantly
+        // most pages this will be null if it was not called and passed as props
+        <Provider session={pageProps.session}>
+            <Layout>
+                <Component {...pageProps} />
+            </Layout>
+        </Provider>
+    );
+}
+
+export default MyApp;
+```
+
+### Check authentication on Server
+
+```js
+import {getSession} from 'next-auth/client'
+
+const handler = async (req, res) => {
+    if(req.method !== 'PATCH'){
+        return;
+    }
+
+    // looks into reqest
+    // checks if session token cookie is part of req
+    // extracts and validates cookie
+    // if that all makes sense it will give the session object
+    const session = await getSession({req: req})
+
+    // checks to see if session exists
+    if(!session){
+        res.status(401).json({message: "Not authenticated!}")
+        return;
+    }
+
+    const userEmail = session.user.email;
+    const oldPassword = req.body.oldPassword;
+    const newPassword = req.body.newPassword;
+
+    // checks if old and new passwords are the same
+    if (oldPassword === newPassword) {
+        res.status(422).json({
+            message: 'Old and New password should not match',
+        });
+        return;
+    }
+
+    const validatedPassword =
+        isValidInput(newPassword) && isValidPassword(newPassword)
+            ? true
+            : false;
+
+    // checks if the password meets the requirements
+    if (!validatedPassword) {
+        res.status(422).json({ message: 'Must enter valid password..' });
+        return;
+    }
+
+    let client;
+    try {
+        client = await connectToDatabase();
+    } catch (error) {
+        res.status(500).json({ message: 'Could not connect to database' });
+    }
+
+    const db = client.db().collection('users');
+
+    // finds users data
+    let user;
+    try {
+        user = await db.findOne({ email: userEmail });
+    } catch (error) {
+        res.status(500).json({ message: 'Could not search database' });
+        client.close();
+        return;
+    }
+
+    if (!user) {
+        res.status(404).json({ message: 'User not found.' });
+        client.close();
+        return;
+    }
+
+    // gets store current password and checks against the oldPassword entered
+    const currentPassword = user.password;
+
+    let passwordsAreEqual;
+    try {
+        passwordsAreEqual = await verifyPassword(oldPassword, currentPassword);
+    } catch (error) {
+        res.status(500).json({
+            message: 'Something went wrong comparing your passwords.',
+        });
+        client.close();
+        return;
+    }
+
+    if (!passwordsAreEqual) {
+        res.status(422).json({ message: 'Invalid password.' });
+        client.close();
+        return;
+    }
+
+    // hashed new password
+    let hashedPassword;
+    try {
+        hashedPassword = await hashPassword(newPassword);
+    } catch (error) {
+        res.status(500).json({
+            message: 'Something went wrong encrypting your password',
+        });
+    }
+
+    // updates password in database
+    try {
+        await db.updateOne(
+            // first argument finds the file to update
+            { email: userEmail },
+            // second argument uses $set to update/add the specified object
+            { $set: { password: hashedPassword } }
+        );
+        res.status(200).json({ message: 'Password updated!' });
+    } catch (error) {
+        res.status(500).json({
+            message: 'Something went wrong updating your password.',
+        });
+    }
+
+    client.close();
+}
+
+export default handler
+```
+
+## NEXTAUTH_URL Variable
+
+Be sure to set this variable for production and development so it will stop yelling at you
