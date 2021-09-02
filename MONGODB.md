@@ -88,6 +88,7 @@ $ mongod --dbpath "path"
 ```js
 show dbs
 ```
+_cls clears your console screen_
 
 _shows all created databases in the shell_
 
